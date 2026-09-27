@@ -491,8 +491,11 @@ struct SpeechScrollView: View {
     /// corrections from speech recognition must not produce a down/up bounce.
     /// Explicit taps and manual scrolling opt into one backward reposition.
     private func applyTrackingTarget(_ target: CGFloat, force: Bool = false) {
-        if !hasAppliedTrackingTarget
-            || target < scrollOffset - 1
+        if !hasAppliedTrackingTarget {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) { scrollOffset = target }
+        } else if target < scrollOffset - 1
             || allowsNextBackwardTrackingUpdate
             || force {
             scrollOffset = target
@@ -841,6 +844,23 @@ struct WordFlowLayout: View {
             .onTapGesture {
                 onWordTap?(item.charOffset)
             }
+    }
+
+    /// Height of the laid-out words at this width: same wrapping, line and
+    /// paragraph spacing as `body`.
+    static func contentHeight(words: [String], font: NSFont, width: CGFloat,
+                              paragraphBreakBeforeWordIndices: Set<Int>) -> CGFloat {
+        guard !words.isEmpty else { return 0 }
+        let layout = WordFlowLayout(words: words, highlightedCharCount: 0, font: font,
+                                    paragraphBreakBeforeWordIndices: paragraphBreakBeforeWordIndices,
+                                    containerWidth: width)
+        let lines = layout.buildLines(items: layout.buildItems())
+        let rowHeight = ceil(font.ascender - font.descender + font.leading)
+        let paragraphs = lines.filter { line in
+            line.first.map { paragraphBreakBeforeWordIndices.contains($0.id) } ?? false
+        }.count
+        return CGFloat(lines.count) * (rowHeight + layout.lineSpacing) - layout.lineSpacing
+            + CGFloat(paragraphs) * paragraphDividerExtraSpacing
     }
 
     private func buildItems() -> [WordItem] {

@@ -44,6 +44,32 @@ class OverlayContent {
     var paragraphBreakBeforeWordIndices: Set<Int> = []
     var totalCharCount: Int = 0
     var hasNextPage: Bool = false
+    /// Deck Sync: the text area this paragraph needs; nil = the user's height.
+    var fittedTextAreaHeight: CGFloat? = nil
+
+    /// The prompter's text area: the paragraph's own height, never above the
+    /// height the user set (which is the maximum).
+    var textAreaHeight: CGFloat {
+        let userHeight = NotchSettings.shared.textAreaHeight
+        return fittedTextAreaHeight.map { min(userHeight, $0) } ?? userHeight
+    }
+
+    /// Everything in the text area besides the words: the scroll view's top
+    /// padding, its bottom fade, the control row and the resize handle.
+    static let promptChromeHeight: CGFloat = 6 + 20 + 34 + 10 + 8
+
+    func fitTextArea(panelWidth: CGFloat) {
+        let settings = NotchSettings.shared
+        guard settings.deckSyncEnabled, settings.overlayMode == .pinned else {
+            fittedTextAreaHeight = nil
+            return
+        }
+        // Panel padding (16 each side) and scroll view padding (12 each side).
+        let textHeight = WordFlowLayout.contentHeight(
+            words: words, font: settings.font, width: panelWidth - 56,
+            paragraphBreakBeforeWordIndices: settings.showParagraphDividers ? paragraphBreakBeforeWordIndices : [])
+        fittedTextAreaHeight = max(NotchSettings.minHeight, ceil(textHeight) + Self.promptChromeHeight)
+    }
 
     // Page picker
     var pageCount: Int = 1
@@ -88,6 +114,7 @@ class NotchOverlayController: NSObject {
         overlayContent.hasNextPage = hasNextPage
 
         let settings = NotchSettings.shared
+        overlayContent.fitTextArea(panelWidth: settings.notchWidth)
 
         let screen: NSScreen
         switch settings.notchDisplayMode {
@@ -135,6 +162,12 @@ class NotchOverlayController: NSObject {
     }
 
     func updateContent(text: String, hasNextPage: Bool) {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) { replaceContent(text: text, hasNextPage: hasNextPage) }
+    }
+
+    private func replaceContent(text: String, hasNextPage: Bool) {
         let normalized = splitTextIntoWords(text)
 
         overlayContent.scriptRevision = UUID()
@@ -148,6 +181,7 @@ class NotchOverlayController: NSObject {
         overlayContent.paragraphBreakBeforeWordIndices = paragraphBreakWordIndices(in: text)
         overlayContent.totalCharCount = normalized.joined(separator: " ").count
         overlayContent.hasNextPage = hasNextPage
+        overlayContent.fitTextArea(panelWidth: NotchSettings.shared.notchWidth)
 
         let settings = NotchSettings.shared
         if settings.listeningMode != .classic {
@@ -233,7 +267,7 @@ class NotchOverlayController: NSObject {
 
     private func showPinned(settings: NotchSettings, screen: NSScreen) {
         let notchWidth = settings.notchWidth
-        let textAreaHeight = settings.textAreaHeight
+        let textAreaHeight = overlayContent.textAreaHeight
         let screenFrame = screen.frame
         let visibleFrame = screen.visibleFrame
 
@@ -768,7 +802,7 @@ struct NotchOverlayView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let targetHeight = menuBarHeight + NotchSettings.shared.textAreaHeight
+            let targetHeight = menuBarHeight + content.textAreaHeight
             let currentHeight = notchHeight + (targetHeight - notchHeight) * expansion
             let currentWidth = notchWidth + (geo.size.width - notchWidth) * expansion
 
@@ -831,7 +865,7 @@ struct NotchOverlayView: View {
             .frame(width: currentWidth, height: currentHeight, alignment: .top)
             .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
         }
-        .onChange(of: NotchSettings.shared.textAreaHeight) { _, newHeight in
+        .onChange(of: content.textAreaHeight) { _, newHeight in
             frameTracker.visibleHeight = menuBarHeight + newHeight
         }
         .onChange(of: NotchSettings.shared.notchWidth) { _, newWidth in
@@ -862,7 +896,7 @@ struct NotchOverlayView: View {
                 }
             }
         }
-        .animation(.easeInOut(duration: 0.5), value: isDone)
+        .animation(NotchSettings.shared.deckSyncEnabled ? nil : .easeInOut(duration: 0.5), value: isDone)
         .onChange(of: isDone) { _, done in
             if done {
                 guard !NotchSettings.shared.deckSyncEnabled else { return }
@@ -953,7 +987,7 @@ struct NotchOverlayView: View {
                 smoothScroll: listeningMode != .wordTracking,
                 smoothWordProgress: timerWordProgress,
                 isListening: isEffectivelyListening,
-                readingPosition: NotchSettings.shared.readingPosition,
+                readingPosition: NotchSettings.shared.promptReadingPosition,
                 paragraphBreakBeforeWordIndices: NotchSettings.shared.showParagraphDividers
                     ? content.paragraphBreakBeforeWordIndices
                     : []
@@ -977,7 +1011,7 @@ struct NotchOverlayView: View {
                     .frame(height: compactControlFadeHeight)
                 }
             }
-            .transition(.move(edge: .top).combined(with: .opacity))
+            .transition(NotchSettings.shared.deckSyncEnabled ? .identity : .move(edge: .top).combined(with: .opacity))
 
             Group {
             HStack(alignment: .center, spacing: 8) {
@@ -1409,7 +1443,7 @@ struct FloatingOverlayView: View {
                 }
             }
         }
-        .animation(.easeInOut(duration: 0.5), value: isDone)
+        .animation(NotchSettings.shared.deckSyncEnabled ? nil : .easeInOut(duration: 0.5), value: isDone)
         .onChange(of: isDone) { _, done in
             if done {
                 guard !NotchSettings.shared.deckSyncEnabled else { return }
@@ -1486,7 +1520,7 @@ struct FloatingOverlayView: View {
                 smoothScroll: listeningMode != .wordTracking,
                 smoothWordProgress: timerWordProgress,
                 isListening: isEffectivelyListening,
-                readingPosition: NotchSettings.shared.readingPosition,
+                readingPosition: NotchSettings.shared.promptReadingPosition,
                 paragraphBreakBeforeWordIndices: NotchSettings.shared.showParagraphDividers
                     ? content.paragraphBreakBeforeWordIndices
                     : []

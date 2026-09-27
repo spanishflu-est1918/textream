@@ -206,7 +206,7 @@ struct ExternalDisplayView: View {
             }
         }
         .scaleEffect(x: mirrorAxis?.scaleX ?? 1, y: mirrorAxis?.scaleY ?? 1)
-        .animation(.easeInOut(duration: 0.5), value: isDone)
+        .animation(NotchSettings.shared.deckSyncEnabled ? nil : .easeInOut(duration: 0.5), value: isDone)
         .onChange(of: isDone) { _, done in
             if done {
                 guard !NotchSettings.shared.deckSyncEnabled else { return }
@@ -279,7 +279,7 @@ struct ExternalDisplayView: View {
                     smoothScroll: listeningMode != .wordTracking,
                     smoothWordProgress: timerWordProgress,
                     isListening: isEffectivelyListening,
-                    readingPosition: NotchSettings.shared.readingPosition,
+                    readingPosition: NotchSettings.shared.promptReadingPosition,
                 paragraphBreakBeforeWordIndices: NotchSettings.shared.showParagraphDividers
                     ? content.paragraphBreakBeforeWordIndices
                     : []

@@ -437,6 +437,12 @@ class NotchSettings {
         didSet { UserDefaults.standard.set(readingPosition.rawValue, forKey: "readingPosition") }
     }
 
+    /// Deck Sync starts every slide at the top of the prompter; centering left
+    /// the first line in the middle of a box sized to the paragraph.
+    var promptReadingPosition: ReadingPosition {
+        deckSyncEnabled ? .nearTop : readingPosition
+    }
+
     var showParagraphDividers: Bool {
         didSet { UserDefaults.standard.set(showParagraphDividers, forKey: "showParagraphDividers") }
     }
