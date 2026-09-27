@@ -479,6 +479,21 @@ class NotchSettings {
         }
     }
 
+    // MARK: - Deck Sync
+    var deckSyncEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(deckSyncEnabled, forKey: "deckSyncEnabled")
+            TextreamService.shared.updateDeckSync()
+        }
+    }
+
+    var deckServerURL: String {
+        didSet {
+            UserDefaults.standard.set(deckServerURL, forKey: "deckServerURL")
+            if deckSyncEnabled { TextreamService.shared.updateDeckSync() }
+        }
+    }
+
     var directorServerPort: UInt16 {
         didSet { UserDefaults.standard.set(Int(directorServerPort), forKey: "directorServerPort") }
     }
@@ -546,6 +561,8 @@ class NotchSettings {
         self.browserServerEnabled = UserDefaults.standard.object(forKey: "browserServerEnabled") as? Bool ?? false
         let savedPort = UserDefaults.standard.integer(forKey: "browserServerPort")
         self.browserServerPort = (1024..<Int(UInt16.max)).contains(savedPort) ? UInt16(savedPort) : 7373
+        self.deckSyncEnabled = UserDefaults.standard.bool(forKey: "deckSyncEnabled")
+        self.deckServerURL = UserDefaults.standard.string(forKey: "deckServerURL") ?? "http://localhost:8123"
         self.directorModeEnabled = UserDefaults.standard.object(forKey: "directorModeEnabled") as? Bool ?? false
         let savedDirectorPort = UserDefaults.standard.integer(forKey: "directorServerPort")
         self.directorServerPort = (1024..<Int(UInt16.max)).contains(savedDirectorPort) ? UInt16(savedDirectorPort) : 7575

@@ -51,6 +51,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // Start browser server if enabled
         TextreamService.shared.updateBrowserServer()
 
+        TextreamService.shared.updateDeckSync()
+
         // Start director server if enabled
         TextreamService.shared.updateDirectorServer()
 

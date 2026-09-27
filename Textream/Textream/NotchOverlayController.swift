@@ -39,6 +39,7 @@ class NotchFrameTracker {
 
 @Observable
 class OverlayContent {
+    var scriptRevision = UUID()
     var words: [String] = []
     var paragraphBreakBeforeWordIndices: Set<Int> = []
     var totalCharCount: Int = 0
@@ -136,6 +137,7 @@ class NotchOverlayController: NSObject {
     func updateContent(text: String, hasNextPage: Bool) {
         let normalized = splitTextIntoWords(text)
 
+        overlayContent.scriptRevision = UUID()
         // Fully reset speech state for new page
         speechRecognizer.recognizedCharCount = 0
         speechRecognizer.shouldDismiss = false
@@ -814,7 +816,7 @@ struct NotchOverlayView: View {
 
                         if content.showPagePicker {
                             pagePickerView
-                        } else if isDone && (listeningMode == .wordTracking || hasNextPage) {
+                        } else if isDone && !NotchSettings.shared.deckSyncEnabled && (listeningMode == .wordTracking || hasNextPage) {
                             doneView
                         } else {
                             prompterView
@@ -863,6 +865,7 @@ struct NotchOverlayView: View {
         .animation(.easeInOut(duration: 0.5), value: isDone)
         .onChange(of: isDone) { _, done in
             if done {
+                guard !NotchSettings.shared.deckSyncEnabled else { return }
                 // In word tracking mode, stop listening when page is done
                 if listeningMode == .wordTracking {
                     speechRecognizer.stop()
@@ -874,6 +877,7 @@ struct NotchOverlayView: View {
                     // visible and let them dismiss manually (X button or Esc).
                     if listeningMode == .wordTracking {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            guard !NotchSettings.shared.deckSyncEnabled else { return }
                             speechRecognizer.shouldDismiss = true
                         }
                     }
@@ -899,6 +903,11 @@ struct NotchOverlayView: View {
             case .wordTracking:
                 break
             }
+        }
+        .onChange(of: content.scriptRevision) { _, _ in
+            timerWordProgress = 0
+            isUserScrolling = false
+            cancelCountdown()
         }
         .onChange(of: content.totalCharCount) { _, _ in
             timerWordProgress = 0
@@ -949,7 +958,12 @@ struct NotchOverlayView: View {
                     ? content.paragraphBreakBeforeWordIndices
                     : []
             )
-            .id(content.currentPageIndex)
+            .id(NotchSettings.shared.deckSyncEnabled ? content.scriptRevision.uuidString : String(content.currentPageIndex))
+            .overlay(alignment: .topTrailing) {
+                if NotchSettings.shared.deckSyncEnabled {
+                    DeckOfflineIndicator(deck: TextreamService.shared.deckSync)
+                }
+            }
             .padding(.horizontal, 12)
             .padding(.top, 6)
             .mask {
@@ -1351,7 +1365,7 @@ struct FloatingOverlayView: View {
         VStack(spacing: 0) {
             if content.showPagePicker {
                 floatingPagePickerView
-            } else if isDone && (listeningMode == .wordTracking || hasNextPage) {
+            } else if isDone && !NotchSettings.shared.deckSyncEnabled && (listeningMode == .wordTracking || hasNextPage) {
                 floatingDoneView
             } else {
                 floatingPrompterView
@@ -1398,12 +1412,14 @@ struct FloatingOverlayView: View {
         .animation(.easeInOut(duration: 0.5), value: isDone)
         .onChange(of: isDone) { _, done in
             if done {
+                guard !NotchSettings.shared.deckSyncEnabled else { return }
                 if listeningMode == .wordTracking {
                     speechRecognizer.stop()
                 }
                 if !hasNextPage {
                     if listeningMode == .wordTracking {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            guard !NotchSettings.shared.deckSyncEnabled else { return }
                             speechRecognizer.shouldDismiss = true
                         }
                     }
@@ -1429,6 +1445,11 @@ struct FloatingOverlayView: View {
             case .wordTracking:
                 break
             }
+        }
+        .onChange(of: content.scriptRevision) { _, _ in
+            timerWordProgress = 0
+            isUserScrolling = false
+            cancelCountdown()
         }
         .onChange(of: content.totalCharCount) { _, _ in
             timerWordProgress = 0
@@ -1470,7 +1491,12 @@ struct FloatingOverlayView: View {
                     ? content.paragraphBreakBeforeWordIndices
                     : []
             )
-            .id(content.currentPageIndex)
+            .id(NotchSettings.shared.deckSyncEnabled ? content.scriptRevision.uuidString : String(content.currentPageIndex))
+            .overlay(alignment: .topTrailing) {
+                if NotchSettings.shared.deckSyncEnabled {
+                    DeckOfflineIndicator(deck: TextreamService.shared.deckSync)
+                }
+            }
             .padding(.horizontal, 16)
             .padding(.top, 12)
 

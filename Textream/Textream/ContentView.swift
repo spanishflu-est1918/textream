@@ -502,7 +502,9 @@ Happy presenting! [wave]
 
     var body: some View {
         Group {
-            if NotchSettings.shared.directorModeEnabled {
+            if NotchSettings.shared.deckSyncEnabled {
+                DeckSyncPanel(deck: service.deckSync) { run() }
+            } else if NotchSettings.shared.directorModeEnabled {
                 directorOverlay
             } else {
                 NavigationSplitView {
@@ -751,7 +753,7 @@ Happy presenting! [wave]
     }
 
     private func run() {
-        guard hasAnyContent else { return }
+        guard NotchSettings.shared.deckSyncEnabled ? !service.deckSync.text.isEmpty : hasAnyContent else { return }
         // Resign text editor focus before hiding the window to avoid ViewBridge crashes
         isTextFocused = false
         service.onOverlayDismissed = { [self] in
@@ -759,6 +761,11 @@ Happy presenting! [wave]
             service.readPages.removeAll()
             NSApp.activate(ignoringOtherApps: true)
             NSApp.windows.first?.makeKeyAndOrderFront(nil)
+        }
+        if NotchSettings.shared.deckSyncEnabled {
+            service.readCurrentPage()
+            isRunning = true
+            return
         }
         service.readPages.removeAll()
         // If the current page is empty, find the first non-empty page

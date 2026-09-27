@@ -25,7 +25,33 @@ class TextreamService: NSObject, ObservableObject {
     @Published var currentPageIndex: Int = 0
     @Published var readPages: Set<Int> = []
 
+    // MARK: - Deck Sync (keeps the user's document untouched)
+    let deckSync = DeckSync()
+    private var deckWasEnabled = false
+
+    func updateDeckSync() {
+        let wasEnabled = deckWasEnabled
+        deckWasEnabled = NotchSettings.shared.deckSyncEnabled
+        if deckWasEnabled {
+            // A single source owns the live script at a time.
+            if directorIsReading { stopDirectorReading() }
+            deckSync.onTextChange = { [weak self] text in
+                guard let self, NotchSettings.shared.deckSyncEnabled else { return }
+                if self.overlayController.isShowing {
+                    self.updateReadingContent(text)
+                }
+            }
+            deckSync.start(serverURL: NotchSettings.shared.deckServerURL)
+        } else {
+            deckSync.stop()
+            if wasEnabled && overlayController.isShowing {
+                overlayController.dismiss()
+            }
+        }
+    }
+
     var hasNextPage: Bool {
+        if NotchSettings.shared.deckSyncEnabled { return false }
         for i in (currentPageIndex + 1)..<pages.count {
             if !pages[i].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 return true
@@ -35,6 +61,7 @@ class TextreamService: NSObject, ObservableObject {
     }
 
     var currentPageText: String {
+        if NotchSettings.shared.deckSyncEnabled { return deckSync.text }
         guard currentPageIndex < pages.count else { return "" }
         return pages[currentPageIndex]
     }
@@ -78,11 +105,12 @@ class TextreamService: NSObject, ObservableObject {
     func readCurrentPage() {
         let trimmed = currentPageText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        readPages.insert(currentPageIndex)
+        if !NotchSettings.shared.deckSyncEnabled { readPages.insert(currentPageIndex) }
         readText(trimmed)
     }
 
     func advanceToNextPage() {
+        guard !NotchSettings.shared.deckSyncEnabled else { return }
         // Skip empty pages
         var nextIndex = currentPageIndex + 1
         while nextIndex < pages.count {
@@ -95,21 +123,22 @@ class TextreamService: NSObject, ObservableObject {
     }
 
     func jumpToPage(index: Int) {
+        guard !NotchSettings.shared.deckSyncEnabled else { return }
         guard index >= 0 && index < pages.count else { return }
         let text = pages[index].trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
 
+        currentPageIndex = index
+        readPages.insert(currentPageIndex)
+        updateReadingContent(text)
+    }
+
+    private func updateReadingContent(_ trimmed: String) {
         // Mute mic before switching page content
         let wasListening = overlayController.speechRecognizer.isListening
         if wasListening {
             overlayController.speechRecognizer.stop()
         }
-
-        currentPageIndex = index
-        readPages.insert(currentPageIndex)
-
-        let trimmed = currentPageText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
 
         // Update content in-place without recreating the panel
         overlayController.updateContent(text: trimmed, hasNextPage: hasNextPage)
@@ -117,6 +146,7 @@ class TextreamService: NSObject, ObservableObject {
 
         // Also update external display content in-place
         let words = splitTextIntoWords(trimmed)
+        externalDisplayController.overlayContent.scriptRevision = overlayController.overlayContent.scriptRevision
         externalDisplayController.overlayContent.words = words
         externalDisplayController.overlayContent.paragraphBreakBeforeWordIndices = paragraphBreakWordIndices(in: trimmed)
         externalDisplayController.overlayContent.totalCharCount = words.joined(separator: " ").count
@@ -149,7 +179,7 @@ class TextreamService: NSObject, ObservableObject {
             return preview + (trimmed.count > 40 ? "…" : "")
         }
         for content in [overlayController.overlayContent, externalDisplayController.overlayContent] {
-            content.pageCount = pages.count
+            content.pageCount = NotchSettings.shared.deckSyncEnabled ? 1 : pages.count
             content.currentPageIndex = currentPageIndex
             content.pagePreviews = pagePreviews
         }
@@ -379,6 +409,7 @@ class TextreamService: NSObject, ObservableObject {
     }
 
     func setTextFromDirector(_ text: String) {
+        guard !NotchSettings.shared.deckSyncEnabled else { return }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 

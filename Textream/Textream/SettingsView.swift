@@ -350,7 +350,7 @@ struct NotchPreviewContent: View {
 // MARK: - Settings Tabs
 
 enum SettingsTab: String, CaseIterable, Identifiable {
-    case appearance, guidance, reading, teleprompter, external, browser, director
+    case appearance, guidance, reading, teleprompter, external, browser, director, deck
 
     var id: String { rawValue }
 
@@ -363,6 +363,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .external:   return "External"
         case .browser:    return "Remote"
         case .director:   return "Director"
+        case .deck:       return "Deck Sync"
         }
     }
 
@@ -375,6 +376,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .external:   return "rectangle.on.rectangle"
         case .browser:    return "antenna.radiowaves.left.and.right"
         case .director:   return "megaphone"
+        case .deck:       return "rectangle.stack"
         }
     }
 }
@@ -446,6 +448,8 @@ struct SettingsView: View {
                     browserTab
                 case .director:
                     directorTab
+                case .deck:
+                    DeckSyncSettingsView(settings: settings)
                 }
 
                 Divider()
@@ -1544,6 +1548,8 @@ struct SettingsView: View {
         settings.autoNextPageDelay = 3
         settings.browserServerEnabled = false
         settings.browserServerPort = 7373
+        settings.deckSyncEnabled = false
+        settings.deckServerURL = "http://localhost:8123"
         settings.directorModeEnabled = false
         settings.directorServerPort = 7575
     }

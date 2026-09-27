@@ -187,10 +187,15 @@ struct ExternalDisplayView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            if isDone && (listeningMode == .wordTracking || hasNextPage) {
+            if isDone && !NotchSettings.shared.deckSyncEnabled && (listeningMode == .wordTracking || hasNextPage) {
                 doneView
             } else {
                 prompterView
+            }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            if NotchSettings.shared.deckSyncEnabled {
+                DeckOfflineIndicator(deck: TextreamService.shared.deckSync).padding(12)
             }
         }
         .overlay(alignment: .topTrailing) {
@@ -204,6 +209,7 @@ struct ExternalDisplayView: View {
         .animation(.easeInOut(duration: 0.5), value: isDone)
         .onChange(of: isDone) { _, done in
             if done {
+                guard !NotchSettings.shared.deckSyncEnabled else { return }
                 if listeningMode == .wordTracking {
                     speechRecognizer.stop()
                 }
@@ -228,6 +234,11 @@ struct ExternalDisplayView: View {
             case .wordTracking:
                 break
             }
+        }
+        .onChange(of: content.scriptRevision) { _, _ in
+            timerWordProgress = 0
+            isUserScrolling = false
+            cancelCountdown()
         }
         .onChange(of: content.currentPageIndex) { _, _ in
             timerWordProgress = 0
@@ -273,7 +284,7 @@ struct ExternalDisplayView: View {
                     ? content.paragraphBreakBeforeWordIndices
                     : []
             )
-            .id(content.currentPageIndex)
+            .id(NotchSettings.shared.deckSyncEnabled ? content.scriptRevision.uuidString : String(content.currentPageIndex))
             .padding(.horizontal, hPad)
 
                 Spacer().frame(height: 20)
