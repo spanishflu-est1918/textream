@@ -12,6 +12,8 @@
 			<dict><key>NSExceptionAllowsInsecureHTTPLoads</key><true/></dict>
 			<key>cyberyogin</key>
 			<dict><key>NSExceptionAllowsInsecureHTTPLoads</key><true/></dict>
+			<key>supergorkbookpro</key>
+			<dict><key>NSExceptionAllowsInsecureHTTPLoads</key><true/></dict>
 		</dict>
 	</dict>
 	<key>ATSApplicationFontsPath</key>

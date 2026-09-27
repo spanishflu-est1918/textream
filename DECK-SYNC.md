@@ -1,6 +1,6 @@
 # Deck Sync
 
-Open Settings → Deck Sync, set the server URL (default `http://localhost:8123`, or `http://cyberyogin:8123` over Tailscale), click **Apply URL**, and enable **Deck Sync**. In the main window click **Start Prompter** (or Command-Return). The enable switch and URL persist across launches. Deck Sync takes priority over Director Mode. Turning it off stops the connection and dismisses the live overlay; the original document is still available, unchanged.
+Open Settings → Deck Sync, set the server URL (default `http://localhost:8123`; from the reading Mac use `http://supergorkbookpro:8123`, the recording Mac, over Tailscale), click **Apply URL**, and enable **Deck Sync**. In the main window click **Start Prompter** (or Command-Return). The enable switch and URL persist across launches. Deck Sync takes priority over Director Mode. Turning it off stops the connection and dismisses the live overlay; the original document is still available, unchanged.
 
 The prompter follows the server's current slide, including the initial position sent on connection. Timeline positions resolve event keys to segment text. Empty scripts, unmatched/empty segments, and invalid positions retain the last text. Only changed text resets speech tracking and scrolling; duplicate events do not. A subtle section/slide counter appears in the main window. At the end of a passage the overlay stays visible, waiting for the next cue. Existing reading modes, external display, browser output, and appearance settings remain available.
 
@@ -13,7 +13,7 @@ A disconnected deck keeps its last text and displays **deck offline** in the mai
 - `Textream/Textream/TextreamService.swift`: isolated deck source and shared existing page-update/reset path.
 - `Textream/Textream/NotchSettings.swift`, `SettingsView.swift`, `TextreamApp.swift`, `ContentView.swift`: persisted configuration, startup, and UI integration.
 - `Textream/Textream/NotchOverlayController.swift`, `ExternalDisplayController.swift`: retain completed deck passages, reset scrolling even for equal-length replacements, offline status.
-- `Textream/Info.plist`: local HTTP networking and explicit localhost/cyberyogin ATS exceptions. Other fully qualified HTTP hosts may need their own narrow exception; HTTPS works without one.
+- `Textream/Info.plist`: local HTTP networking and explicit localhost/cyberyogin/supergorkbookpro ATS exceptions. Other fully qualified HTTP hosts may need their own narrow exception; HTTPS works without one.
 - `tests/deck-sync/Checks.swift`, `run.py`: standalone macOS CLI regression checks and a local HTTP/SSE fixture.
 
 The Xcode project uses `PBXFileSystemSynchronizedRootGroup` for `Textream/`, attached to the macOS target. Both new Swift files are automatically included; no manual project entries are needed. The existing sandbox entitlement already includes `com.apple.security.network.client`. Release is unsandboxed; the Developer ID entitlement does not enable sandboxing.
