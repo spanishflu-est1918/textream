@@ -1,6 +1,6 @@
 # Deck Sync
 
-Open Settings → Deck Sync, set the server URL (default `http://localhost:8123`; from the reading Mac use `http://supergorkbookpro:8123`, the recording Mac, over Tailscale), click **Apply URL**, and enable **Deck Sync**. In the main window click **Start Prompter** (or Command-Return). The enable switch and URL persist across launches. Deck Sync takes priority over Director Mode. Turning it off stops the connection and dismisses the live overlay; the original document is still available, unchanged.
+Open Settings → Deck Sync, set the server URL (default `http://localhost:8123`; it runs on the recording Mac (supergorkbookpro), next to the camera), click **Apply URL**, and enable **Deck Sync**. In the main window click **Start Prompter** (or Command-Return). The enable switch and URL persist across launches. Deck Sync takes priority over Director Mode. Turning it off stops the connection and dismisses the live overlay; the original document is still available, unchanged.
 
 The prompter follows the server's current slide, including the initial position sent on connection. Timeline positions resolve event keys to segment text. Empty scripts, unmatched/empty segments, and invalid positions retain the last text. Only changed text resets speech tracking and scrolling; duplicate events do not. A subtle section/slide counter appears in the main window. At the end of a passage the overlay stays visible, waiting for the next cue. Existing reading modes, external display, browser output, and appearance settings remain available.
 
