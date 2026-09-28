@@ -726,6 +726,7 @@ struct NotchOverlayView: View {
     @State private var expansion: CGFloat = 0
     @State private var contentVisible = false
     @State private var dragStartHeight: CGFloat = -1
+    @State private var isPointerOver = false
 
     // Timer-based scroll for classic & silence-paused modes
     @State private var timerWordProgress: Double = 0
@@ -865,6 +866,10 @@ struct NotchOverlayView: View {
             .frame(width: currentWidth, height: currentHeight, alignment: .top)
             .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
         }
+        // Deck Sync: see through the prompter to the screen behind; full opacity under the mouse.
+        .opacity(NotchSettings.shared.deckSyncEnabled && !isPointerOver ? 0.5 : 1)
+        .animation(.easeOut(duration: 0.15), value: isPointerOver)
+        .onHover { isPointerOver = $0 }
         .onChange(of: content.textAreaHeight) { _, newHeight in
             frameTracker.visibleHeight = menuBarHeight + newHeight
         }
