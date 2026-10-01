@@ -37,6 +37,7 @@ struct DeckMessage: Decodable {
     let type: String
     let i: Int?
     let tlPos: Int?
+    let op: String?   // "prompter" messages: "start" / "stop" (the presenter's arm button)
 
     static func parse(line: String) -> DeckMessage? {
         guard line.hasPrefix("data:") else { return nil }
@@ -51,6 +52,7 @@ final class DeckSync: ObservableObject {
     @Published private(set) var status = "Connecting to deck…"
     @Published private(set) var offline = false
     var onTextChange: ((String) -> Void)?
+    var onPrompter: ((String) -> Void)?
     private var task: Task<Void, Never>?
     private var session: URLSession?
     private var generation = UUID()
@@ -120,6 +122,8 @@ final class DeckSync: ObservableObject {
                             guard self.generation == token, !Task.isCancelled else { return }
                             self.document = updated
                             self.applyPosition()
+                        case "prompter":
+                            if let op = message.op { self.onPrompter?(op) }
                         default: break
                         }
                     }

@@ -41,6 +41,15 @@ class TextreamService: NSObject, ObservableObject {
                     self.updateReadingContent(text)
                 }
             }
+            // the presenter's arm button: start or stop the prompter from the deck
+            deckSync.onPrompter = { [weak self] op in
+                guard let self, NotchSettings.shared.deckSyncEnabled else { return }
+                switch op {
+                case "start": if !self.overlayController.isShowing { self.readCurrentPage() }
+                case "stop": if self.overlayController.isShowing { self.overlayController.dismiss() }
+                default: break
+                }
+            }
             deckSync.start(serverURL: NotchSettings.shared.deckServerURL)
         } else {
             deckSync.stop()
