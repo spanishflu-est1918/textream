@@ -255,14 +255,20 @@ class NotchOverlayController: NSObject {
         currentScreenID = mouseScreenID
         let screenFrame = mouseScreen.frame
 
-        frameTracker.screenMidX = screenFrame.midX
+        frameTracker.screenMidX = pinnedMidX(screenFrame)
         frameTracker.screenMaxY = screenFrame.maxY
 
         let w = frameTracker.visibleWidth
         let h = frameTracker.visibleHeight
-        let x = screenFrame.midX - w / 2
+        let x = pinnedMidX(screenFrame) - w / 2
         let y = screenFrame.maxY - h
         panel.setFrame(NSRect(x: x, y: y, width: w, height: h), display: true)
+    }
+
+    /// Where the pinned prompter is centred: the notch, moved sideways by `notchOffsetX` points
+    /// (`defaults write dev.fka.textream.deck notchOffsetX -float 300`; positive = right, 50 pt ≈ 1 cm on a 14" MacBook Pro).
+    private func pinnedMidX(_ screenFrame: NSRect) -> CGFloat {
+        screenFrame.midX + CGFloat(UserDefaults.standard.double(forKey: "notchOffsetX"))
     }
 
     private func showPinned(settings: NotchSettings, screen: NSScreen) {
@@ -275,7 +281,7 @@ class NotchOverlayController: NSObject {
         let menuBarHeight = screenFrame.maxY - visibleFrame.maxY
 
         let tracker = NotchFrameTracker()
-        tracker.screenMidX = screenFrame.midX
+        tracker.screenMidX = pinnedMidX(screenFrame)
         tracker.screenMaxY = screenFrame.maxY
         tracker.menuBarHeight = menuBarHeight
         // Set full expanded dimensions so mouse tracking uses the correct size
@@ -295,7 +301,7 @@ class NotchOverlayController: NSObject {
         // Start panel at full target size (SwiftUI animates the notch shape inside)
         let targetHeight = menuBarHeight + textAreaHeight
         let targetY = screenFrame.maxY - targetHeight
-        let xPosition = screenFrame.midX - notchWidth / 2
+        let xPosition = pinnedMidX(screenFrame) - notchWidth / 2
         let panel = PrompterPanel(
             contentRect: NSRect(x: xPosition, y: targetY, width: notchWidth, height: targetHeight),
             styleMask: [.borderless, .nonactivatingPanel],
