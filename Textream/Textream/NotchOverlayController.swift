@@ -727,6 +727,8 @@ struct NotchOverlayView: View {
     @State private var contentVisible = false
     @State private var dragStartHeight: CGFloat = -1
     @State private var isPointerOver = false
+    // Deck Sync: the eye turns the see-through on; every prompter opens fully opaque.
+    @State private var seeThrough = false
 
     // Timer-based scroll for classic & silence-paused modes
     @State private var timerWordProgress: Double = 0
@@ -866,8 +868,8 @@ struct NotchOverlayView: View {
             .frame(width: currentWidth, height: currentHeight, alignment: .top)
             .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
         }
-        // Deck Sync: see through the prompter to the screen behind; full opacity under the mouse.
-        .opacity(NotchSettings.shared.deckSyncEnabled && !isPointerOver ? 0.5 : 1)
+        // Deck Sync: with the eye on, see through the prompter to the screen behind; full opacity under the mouse.
+        .opacity(seeThrough && !isPointerOver ? 0.5 : 1)
         .animation(.easeOut(duration: 0.15), value: isPointerOver)
         .onHover { isPointerOver = $0 }
         .onChange(of: content.textAreaHeight) { _, newHeight in
@@ -1102,6 +1104,20 @@ struct NotchOverlayView: View {
                     }
                     .buttonStyle(.plain)
                 } else {
+                    if NotchSettings.shared.deckSyncEnabled {
+                        Button {
+                            seeThrough.toggle()
+                        } label: {
+                            Image(systemName: seeThrough ? "eye.fill" : "eye")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(seeThrough ? .yellow.opacity(0.8) : .white.opacity(0.6))
+                                .frame(width: 24, height: 24)
+                                .background(.white.opacity(0.15))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+
                     Button {
                         if speechRecognizer.isListening || speechRecognizer.isStarting {
                             speechRecognizer.stop()
