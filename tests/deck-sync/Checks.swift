@@ -22,6 +22,7 @@ struct Checks {
         assert(DeckMessage.parse(line: #"data: {"type":"goto","i":0,"extra":true}"#)?.i == 0)
         assert(DeckMessage.parse(line: #"data: {"type":"reload"}"#)?.type == "reload")
         assert(DeckMessage.parse(line: #"data: {"type":"prompter","op":"start"}"#)?.op == "start")
+        assert(DeckMessage.parse(line: #"data: {"type":"prompter","op":"clock","t0":1759300000000}"#)?.t0 == 1759300000000)
         assert(DeckSync.baseURL("file:///tmp/deck") == nil)
         assert(DeckSync.baseURL("http://localhost:8123") != nil)
         assert((0...5).map { DeckSync.retryDelay($0) } == [1, 2, 5, 5, 5, 5])

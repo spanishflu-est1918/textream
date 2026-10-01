@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 
 private let paragraphDividerExtraSpacing: CGFloat = 14
 private let paragraphDividerDotSize: CGFloat = 3
@@ -909,14 +910,25 @@ struct WordFlowLayout: View {
 
 // MARK: - Elapsed Time
 
+/// The deck presenter's clock, when Deck Sync is on: its zero point while running, or the time shown while paused.
+final class DeckClock: ObservableObject {
+    static let shared = DeckClock()
+    @Published private(set) var anchor: Date?
+    @Published private(set) var frozen: TimeInterval?
+    func set(anchor: Date?, frozen: TimeInterval?) { self.anchor = anchor; self.frozen = frozen }
+}
+
 struct ElapsedTimeView: View {
     let fontSize: CGFloat
 
     @State private var startDate = Date()
+    @ObservedObject private var deckClock = DeckClock.shared
 
     var body: some View {
         TimelineView(.periodic(from: startDate, by: 1)) { context in
-            let elapsed = context.date.timeIntervalSince(startDate)
+            let deck = NotchSettings.shared.deckSyncEnabled
+            let elapsed = max(0, deck && deckClock.frozen != nil ? deckClock.frozen!
+                : context.date.timeIntervalSince(deck ? (deckClock.anchor ?? startDate) : startDate))
             let minutes = Int(elapsed) / 60
             let seconds = Int(elapsed) % 60
             Text(String(format: "%02d:%02d", minutes, seconds))

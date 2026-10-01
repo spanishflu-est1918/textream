@@ -42,9 +42,12 @@ class TextreamService: NSObject, ObservableObject {
                 }
             }
             // the presenter's arm button: start or stop the prompter from the deck
-            deckSync.onPrompter = { [weak self] op in
+            deckSync.onPrompter = { [weak self] message in
                 guard let self, NotchSettings.shared.deckSyncEnabled else { return }
-                switch op {
+                // one clock: the prompter's elapsed time follows the presenter's
+                if let t0 = message.t0 { DeckClock.shared.set(anchor: Date(timeIntervalSince1970: t0 / 1000), frozen: nil) }
+                else if let frozen = message.frozen { DeckClock.shared.set(anchor: nil, frozen: frozen / 1000) }
+                switch message.op ?? "" {
                 case "start": if !self.overlayController.isShowing { self.readCurrentPage() }
                 case "stop": if self.overlayController.isShowing { self.overlayController.dismiss() }
                 default: break
