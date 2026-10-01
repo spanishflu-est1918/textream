@@ -48,7 +48,14 @@ class TextreamService: NSObject, ObservableObject {
                 if let t0 = message.t0 { DeckClock.shared.set(anchor: Date(timeIntervalSince1970: t0 / 1000), frozen: nil) }
                 else if let frozen = message.frozen { DeckClock.shared.set(anchor: nil, frozen: frozen / 1000) }
                 switch message.op ?? "" {
-                case "start": if !self.overlayController.isShowing { self.readCurrentPage() }
+                case "start":
+                    guard !self.overlayController.isShowing else { break }
+                    // the deck asked from another app (the presenter in Brave): give it focus back, or its arrow keys stop working
+                    let front = NSWorkspace.shared.frontmostApplication
+                    self.readCurrentPage()
+                    if let front, front.processIdentifier != ProcessInfo.processInfo.processIdentifier {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { front.activate() }
+                    }
                 case "stop": if self.overlayController.isShowing { self.overlayController.dismiss() }
                 default: break
                 }
